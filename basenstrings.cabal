@@ -1,0 +1,57 @@
+-- This file has been generated from package.yaml by hpack version 0.20.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: f921dac63279f145f0e45ec1a142f647a5ffa36b144319f777b938f1913ce849
+
+name:           basenstrings
+version:        0.1.0.0
+description:    Base-N ByteStrings for base{16,32,58,64}
+homepage:       https://github.com/githubuser/basenstrings#readme
+bug-reports:    https://github.com/githubuser/basenstrings/issues
+author:         William Fisher
+maintainer:     williamsykesfisher@gmail.com
+copyright:      2018 William Fisher
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    ChangeLog.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/basenstrings
+
+library
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+  exposed-modules:
+      Data.ByteString.Base16
+      Data.ByteString.Base32
+      Data.ByteString.Base58
+      Data.ByteString.Base64
+      Data.ByteString.Internal
+  other-modules:
+      Paths_basenstrings
+  default-language: Haskell2010
+
+test-suite basenstrings-test
+  type: exitcode-stdio-1.0
+  main-is: Base16.hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , basenstrings
+    , bytestring
+    , QuickCheck
+  other-modules:
+      Paths_basenstrings
+  default-language: Haskell2010
