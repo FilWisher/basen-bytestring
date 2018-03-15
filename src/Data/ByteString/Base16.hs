@@ -13,7 +13,7 @@ module Data.ByteString.Base16
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Char8 as B8
 
-import Data.ByteString.Internal (byteAt)
+import Data.ByteString.Internal.Extended (byteAt)
 import           Data.Bits             as Bits (shiftL, shiftR, (.&.), (.|.))
 import           Data.Word
 
