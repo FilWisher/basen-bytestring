@@ -12,66 +12,72 @@ module Data.ByteString.Base16
 
 import qualified Data.ByteString       as BS
 import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Internal as Internal
 
-import Data.ByteString.Internal.Extended (byteAt)
+import System.IO.Unsafe (unsafePerformIO)
+import Foreign.Storable (peek, poke, peekElemOff)
+import Foreign.Ptr (plusPtr, castPtr, Ptr, minusPtr)
+
+import Data.ByteString.Internal.Extended (byChunk, byChunkErr, Enc(..), encodeWord, decodeWord, mkEnc)
 import           Data.Bits             as Bits (shiftL, shiftR, (.&.), (.|.))
 import           Data.Word
+import Control.Monad (void)
 
 type Base16 = B8.ByteString
 
-encode :: B8.ByteString -> Either String B8.ByteString
+encode :: B8.ByteString -> B8.ByteString
 encode = encodeAlphabet hexlower
 
 decode :: B8.ByteString -> Either String B8.ByteString
 decode = decodeAlphabet hexlower
 
-encodeAlphabet :: B8.ByteString -> B8.ByteString -> Either String B8.ByteString
-encodeAlphabet table 
-  | B8.length table /= 16 = const $ Left tableError
-  | otherwise = 
-      BS.foldr (\byte encoded -> BS.append <$> toHex byte <*> encoded) (Right "")
+poke8 :: Ptr Word8 -> Word8 -> IO ()
+poke8 = poke
+
+encodeAlphabet :: Enc -> B8.ByteString -> B8.ByteString
+encodeAlphabet enc src@(Internal.PS sfp soff slen) =
+  unsafePerformIO $ byChunk 1 (slen * 2) onchunk onend src
   where
-    tableError :: String
-    tableError = "Encoding table not large enough to encode byte"
+    encodeNibble :: (Word8 -> Word8) -> Ptr Word8 -> IO Word8
+    encodeNibble fn p = encodeWord enc . fn <$> peek p
 
-    byteFor    :: Word8 -> Maybe B8.ByteString
-    byteFor = fmap BS.singleton . (table `byteAt`) . fromIntegral
-
-    left :: Word8 -> Maybe B8.ByteString
-    left = byteFor . leftNibble
+    onchunk :: Ptr Word8 -> Ptr Word8 -> IO Int
+    onchunk sp dp = do
+      poke8 dp               =<< encodeNibble leftNibble  sp
+      poke8 (dp `plusPtr` 1) =<< encodeNibble rightNibble sp
+      return 2
     
-    right :: Word8 -> Maybe B8.ByteString
-    right = byteFor . rightNibble
+    onend :: Ptr Word8 -> Ptr Word8 -> Int -> IO ()
+    onend sp dp rem = return ()
 
-    toHex :: Word8 -> Either String B8.ByteString
-    toHex word = 
-      case B8.append <$> left word <*> right word of
-        Nothing    -> Left tableError
-        Just octet -> Right octet
-
-decodeAlphabet :: B8.ByteString -> B8.ByteString -> Either String B8.ByteString
-decodeAlphabet table bs = 
-  case snd $ BS.foldr decodeStep (Nothing, Just "") bs of
-    Nothing -> Left "Invalid base16 string"
-    Just str -> Right str 
+decodeAlphabet :: Enc -> B8.ByteString -> Either String B8.ByteString
+decodeAlphabet enc src@(Internal.PS sfp soff slen) =
+  unsafePerformIO $ byChunkErr 2 (slen `div` 2) onchunk onend Left src
   where
-    getNibble :: Word8 -> Maybe Word8
-    getNibble = fmap fromIntegral . flip BS.elemIndex table
+    onchunk :: Ptr Word8 -> Ptr Word8 -> IO (Either String Int)
+    onchunk sp dp = do
+      leftNibble  <- decodeWord enc <$> peek sp
+      rightNibble <- decodeWord enc <$> peek (sp `plusPtr` 1)
+      case (.|.) <$> fmap (`Bits.shiftL` 4) leftNibble <*> rightNibble of
+        Left err -> do
+          l <- peek sp :: IO Word8
+          r <- peek (sp `plusPtr` 1) :: IO Word8
+          return $ Left $ "Invalid byte encountered. One of: " ++ B8.unpack (BS.pack [l,r])
+        Right w -> do
+          poke8 dp w
+          return $ Right 1
 
-    getWord :: Word8 -> Word8 -> Maybe Word8
-    getWord l r = (.|.) <$> (flip Bits.shiftL 4 <$> getNibble l) <*> getNibble r
-
-    decodeStep l (Nothing,bs) = (Just l, bs)
-    decodeStep l (Just r,bs) = (Nothing, BS.cons <$> getWord l r <*> bs)
+    onend :: Ptr Word8 -> Ptr Word8  -> Int -> IO (Either String Int)
+    onend sp dp rem = return $ Right 0
 
 leftNibble :: Word8 -> Word8
-leftNibble = flip Bits.shiftR 4
+leftNibble n = n `Bits.shiftR` 4
 
 rightNibble :: Word8 -> Word8
 rightNibble n = 0x0F .&. n
 
-hexlower :: B8.ByteString
-hexlower = B8.pack $ ['0'..'9'] ++ ['a'..'f']
+hexlower :: Enc
+hexlower = mkEnc "0123456789abcdef" ""
 
-hexupper :: B8.ByteString
-hexupper = B8.pack $ ['0'..'9'] ++ ['A'..'F']
+hexupper :: Enc
+hexupper = mkEnc "0123456789ABCDEF" ""
