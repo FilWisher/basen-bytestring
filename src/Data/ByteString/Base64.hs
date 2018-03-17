@@ -53,44 +53,6 @@ nthWord6 word32 n = fromIntegral $ (word32 `shiftR` (18 - (n * 6))) .&. 0x3f
 peek8_fn :: Ptr Word8 -> Int -> (Word8 -> Word8) -> IO Word8
 peek8_fn ptr off f = f <$> peek (ptr `plusPtr` off)
 
-encode :: Enc -> B8.ByteString -> B8.ByteString
-encode enc (Internal.PS sfp soff slen) =
-  unsafePerformIO $ do
-    let dlen = ((slen + 2) `div` 3) * 4
-    dfp <- Internal.mallocByteString dlen
-    withForeignPtr sfp $ \sptr ->
-      withForeignPtr dfp $ \dptr -> 
-        fill (castPtr dptr) (castPtr sptr) (sptr `plusPtr` (soff + slen))
-    return $ Internal.PS dfp 0 dlen
-
-fill :: Ptr Word8 -> Ptr Word8 -> Ptr Word8 -> IO ()
-fill dp sp sEnd
-  | sp `plusPtr` 2 >= sEnd = complete (castPtr dp) (castPtr sp) sEnd
-  | otherwise = do
-    -- Produce a Word32 where the 24 right-most bytes are the contents
-    -- of (sp..sp+2)
-    w <- liftA3 pack8x3 (peek sp) (peek $ sp `plusPtr` 1) (peek $ sp `plusPtr` 2)
-    -- Unpack the Word32 6 bytes at a time, encode them, and place into `dp`
-    poke8s dp 
-      $ map (encodeWord enc) 
-      $ unpack6x4 w
-    fill (dp `plusPtr` 4) (sp `plusPtr` 3) sEnd
-
-complete :: Ptr Word8 -> Ptr Word8 -> Ptr Word8 -> IO ()
-complete dp sp sEnd
-  | sp == sEnd = return ()
-  | otherwise = do
-    let rem = if sp `plusPtr` 2 == sEnd then 2 else 1
-    w <- liftA3 pack8x3 
-      (peek sp) 
-      (if rem == 2 then peek $ sp `plusPtr` 1 else return 0) 
-      (return 0)
-    let bytes = map (encodeWord enc) $ unpack6x4 w
-    poke8 dp               (bytes !! 0)
-    poke8 (dp `plusPtr` 1) (bytes !! 1)
-    poke8 (dp `plusPtr` 2) (if rem == 2 then bytes !! 2 else 0x3d)
-    poke8 (dp `plusPtr` 3) 0x3d
-
 decode :: Enc -> B8.ByteString -> Either String B8.ByteString
 decode enc (Internal.PS sfp soff slen)
   | drem /=0 = Left "Invalid padding"
@@ -206,8 +168,8 @@ unpack6x4 :: Word32 -> [Word8]
 unpack6x4 w =
   [ unpack6 3 w, unpack6 2 w, unpack6  1 w, unpack6 0 w]
 
-encode' :: Enc -> B8.ByteString -> B8.ByteString
-encode' enc src@(Internal.PS sfp soff slen) =
+encode :: Enc -> B8.ByteString -> B8.ByteString
+encode enc src@(Internal.PS sfp soff slen) =
   unsafePerformIO $ byChunk 3 (((slen + 2) `div` 3) * 4) onchunk onend src
 
   where
@@ -220,7 +182,6 @@ encode' enc src@(Internal.PS sfp soff slen) =
 
     onend sp dp 0 = return ()
     onend sp dp rem = do
-      print rem
       w <- liftA3 pack8x3 
         (peek sp) 
         (if rem == 2 then peek $ sp `plusPtr` 1 else return 0) 

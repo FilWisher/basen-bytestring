@@ -16,11 +16,9 @@ module Data.ByteString.BaseN where
 
 import qualified Data.ByteString.Char8 as B8
 
-type BaseN = B8.ByteString
+encode         :: B8.ByteString -> B8.ByteString
+decode         :: B8.ByteString -> B8.ByteString
 
-encode         :: BaseN -> B8.ByteString
-decode         :: BaseN -> B8.ByteString
-
-encodeAlphabet :: B8.ByteString -> BaseN -> B8.ByteString
-decodeAlphabet :: B8.ByteString -> BaseN -> B8.ByteString
+encodeAlphabet :: Enc -> B8.ByteString -> B8.ByteString
+decodeAlphabet :: Enc -> B8.ByteString -> B8.ByteString
 ```
