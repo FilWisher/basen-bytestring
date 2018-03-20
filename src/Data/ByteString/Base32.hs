@@ -12,7 +12,6 @@ module Data.ByteString.Base32
   ) where
 
 -- TODO: use pack8 :: Num a => Word8 -> a -> a and specialize
--- FIXME: single character encoding is failing: something is very wrong
 
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString as BS
@@ -35,11 +34,11 @@ unpack8 :: Int -> Word64 -> Word8
 unpack8 off buf = fromIntegral $ buf `shiftR` (8 * off) .&. 0xff
 
 pack8x5 :: [Word8] -> Word64
-pack8x5 bs = foldr (uncurry pack8) 0 (zip [0..4] bs)
+pack8x5 bs = foldr (uncurry pack8) 0 (zip [4,3..0] bs)
 
 unpack8x5 :: Word64 -> [Word8]
 unpack8x5 w =
-  map (`unpack8` w) [0..4]
+  map (`unpack8` w) [4,3..0]
 
 pack5 :: Int -> Word8 -> Word64 -> Word64
 pack5 off word buf = buf .|. (fromIntegral word `shiftL` (off * 5))
@@ -48,7 +47,7 @@ unpack5 :: Int -> Word64 -> Word8
 unpack5 off buf = fromIntegral $ buf `shiftR` (5 * off) .&. 0x1f
 
 pack5x8 :: [Word8] -> Word64
-pack5x8 bs = foldr (uncurry pack5) 0 (zip [0..7] bs)
+pack5x8 bs = foldr (uncurry pack5) 0 (zip [7,6..0] bs)
 
 unpack5x8 :: Word64 -> [Word8]
 unpack5x8 bs =
@@ -81,24 +80,27 @@ encode enc src@(Internal.PS sfp soff slen) =
     onend sp dp 0 = return ()
     onend sp dp rem = do
       print rem
-      w <- pack8x5 <$> sequence
+      seq <- sequence
         [ peek sp 
-        , if rem >= 2 then peek $ sp `plusPtr` 1 else return 0
-        , if rem <= 3 then peek $ sp `plusPtr` 2 else return 0
-        , if rem <= 4 then peek $ sp `plusPtr` 3 else return 0
-        , if rem <= 5 then peek $ sp `plusPtr` 4 else return 0
+        , if rem > 1 then peek $ sp `plusPtr` 1 else return 0
+        , if rem > 2 then peek $ sp `plusPtr` 2 else return 0
+        , if rem > 3 then peek $ sp `plusPtr` 3 else return 0
+        , if rem > 4 then peek $ sp `plusPtr` 4 else return 0
         ]
+      print seq
+      let w = pack8x5 seq
+      print w
       let bytes = map (encodeWord enc) $ unpack5x8 w
-      print bytes
-      print (BS.pack bytes)
+      --print bytes
+      --print (BS.pack bytes)
       poke8 dp               (bytes !! 0)
-      poke8 (dp `plusPtr` 1) (if rem == 1 then 0x3d else bytes !! 1 )
-      poke8 (dp `plusPtr` 2) (if rem <= 2 then 0x3d else bytes !! 2 )
-      poke8 (dp `plusPtr` 3) (if rem <= 2 then 0x3d else bytes !! 3 )
-      poke8 (dp `plusPtr` 4) (if rem <= 2 then 0x3d else bytes !! 4 )
-      poke8 (dp `plusPtr` 5) (if rem <= 3 then 0x3d else bytes !! 5 )
-      poke8 (dp `plusPtr` 6) (if rem <= 3 then 0x3d else bytes !! 6 )
-      poke8 (dp `plusPtr` 7) (if rem <= 4 then 0x3d else bytes !! 7 )
+      poke8 (dp `plusPtr` 1) (bytes !! 1)
+      poke8 (dp `plusPtr` 2) (if rem < 2 then 0x3d else bytes !! 2 )
+      poke8 (dp `plusPtr` 3) (if rem < 2 then 0x3d else bytes !! 3 )
+      poke8 (dp `plusPtr` 4) (if rem < 3 then 0x3d else bytes !! 4 )
+      poke8 (dp `plusPtr` 5) (if rem < 4 then 0x3d else bytes !! 5 )
+      poke8 (dp `plusPtr` 6) (if rem < 4 then 0x3d else bytes !! 6 )
+      poke8 (dp `plusPtr` 7) (0x3d else bytes !! 7 )
 
 enc :: Enc
 enc =  mkEnc "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567" ""
