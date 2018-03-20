@@ -107,26 +107,21 @@ byChunk chunksize dlen onchunk onend (Internal.PS sfp soff slen) =
 byChunkErr :: 
   Int ->
   Int ->
-  (Ptr Word8 -> Ptr Word8 -> IO (Either a Int)) ->
-  (Ptr Word8 -> Ptr Word8 -> Int -> IO (Either a Int)) ->
-  (a -> Either a B8.ByteString) ->
+  (Ptr Word8 -> Ptr Word8 -> IO (Either String Int)) ->
+  (Ptr Word8 -> Ptr Word8 -> Int -> IO (Either String Int)) ->
   B8.ByteString ->
-  IO (Either a B8.ByteString)
-byChunkErr chunksize dlen onchunk onend onerror (Internal.PS sfp soff slen) =
+  IO (Either String B8.ByteString)
+byChunkErr chunksize dlen onchunk onend (Internal.PS sfp soff slen) =
   withForeignPtr sfp $ \sptr -> do
     let
       end = sptr `plusPtr` (soff + slen)
       loop sp dp
-        | sp `plusPtr` (chunksize-1) >= end = onend sp dp (end `minusPtr` sp)
+        | sp `plusPtr` chunksize > end  = return $ Left "Not enough bytes remaining"
+        | sp `plusPtr` chunksize == end = onend sp dp (end `minusPtr` sp)
         | otherwise               = do
           advance <- onchunk sp dp
           case advance of
             Left err -> return $ Left err
             Right n -> loop (sp `plusPtr` chunksize) (dp `plusPtr` n)
     dfp <- Internal.mallocByteString dlen
-    withForeignPtr dfp $ \dptr -> do
-      res <- loop sptr dptr
-      case res of
-        Left err -> return $ onerror err
-        Right _ -> return $ Right $ Internal.PS dfp 0 dlen
-
+    fmap (Internal.PS dfp 0) <$> withForeignPtr dfp (loop sptr)

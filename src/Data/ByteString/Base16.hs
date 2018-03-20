@@ -51,9 +51,13 @@ encodeAlphabet enc src@(Internal.PS sfp soff slen) =
     onend sp dp rem = return ()
 
 decodeAlphabet :: Enc -> B8.ByteString -> Either String B8.ByteString
-decodeAlphabet enc src@(Internal.PS sfp soff slen) =
-  unsafePerformIO $ byChunkErr 2 (slen `div` 2) onchunk onend Left src
+decodeAlphabet enc src@(Internal.PS sfp soff slen)
+  | slen == 0 = Right BS.empty
+  | otherwise = 
+    unsafePerformIO $ byChunkErr 2 dlen onchunk onend src
   where
+    dlen = slen `div` 2
+
     onchunk :: Ptr Word8 -> Ptr Word8 -> IO (Either String Int)
     onchunk sp dp = do
       leftNibble  <- decodeWord enc <$> peek sp
@@ -68,7 +72,7 @@ decodeAlphabet enc src@(Internal.PS sfp soff slen) =
           return $ Right 1
 
     onend :: Ptr Word8 -> Ptr Word8  -> Int -> IO (Either String Int)
-    onend sp dp rem = return $ Right 0
+    onend sp dp rem = onchunk sp dp >> return (Right dlen)
 
 leftNibble :: Word8 -> Word8
 leftNibble n = n `Bits.shiftR` 4

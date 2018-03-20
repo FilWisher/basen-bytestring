@@ -31,6 +31,11 @@ prop_base16_inverse bs =
   either (const False) (bs==)
     $ Base16.decode $ Base16.encode bs
 
+prop_base32_inverse :: B8.ByteString -> Bool
+prop_base32_inverse bs =
+  either (const False) (bs==)
+    $ Base32.decode $ Base32.encode bs
+
 return []
 runTests = $quickCheckAll
 
