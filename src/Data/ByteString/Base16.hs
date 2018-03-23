@@ -18,7 +18,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import Foreign.Storable (peek, poke, peekElemOff)
 import Foreign.Ptr (plusPtr, castPtr, Ptr, minusPtr)
 
-import Data.ByteString.Internal.Extended (byChunk, byChunkErr, Enc(..), encodeWord, decodeWord, mkEnc)
+import Data.ByteString.BaseN (byChunk, byChunkErr, Enc(..), encodeWord, decodeWord, mkEnc)
 import           Data.Bits             as Bits (shiftL, shiftR, (.&.), (.|.))
 import           Data.Word
 import Control.Monad (void)

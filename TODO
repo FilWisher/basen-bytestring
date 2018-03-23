@@ -1,0 +1,11 @@
+TODO
+
+o Refactor decodeAlphabet 32 + 64 so they are less fragile
+o Make naming consistent between packages
+o Keep {un,}packN and {un,}packNxM functions in modules they are used.
+o Check exports only what is needed
+
+REVIEW
+PUBLISH
+
+o Benchmarks

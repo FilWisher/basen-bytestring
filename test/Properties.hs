@@ -16,15 +16,7 @@ instance Arbitrary B8.ByteString where
 prop_base64_inverse :: B8.ByteString -> Bool
 prop_base64_inverse bs =
   either (const False) (bs==)
-    $ Base64.decode Base64.enc $ Base64.encode Base64.enc bs
-
-prop_pack8_inverse :: Word8 -> Bool
-prop_pack8_inverse word =
-  all (\n -> Base32.unpack8 n (Base32.pack8 n word 0) == word) [0..4]
-
--- Limit to 5-bit words because that is all we're testing
-prop_pack5_inverse = forAll (choose (0, 2^4)) $ \word -> 
-  all (\n -> Base32.unpack5 n (Base32.pack5 n word 0) == word) [0..7]
+    $ Base64.decode $ Base64.encode bs
 
 prop_base16_inverse :: B8.ByteString -> Bool
 prop_base16_inverse bs =

@@ -27,7 +27,7 @@ module Data.ByteString.Base32
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as Internal
-import Data.ByteString.Internal.Extended hiding (unpack8, pack8) 
+import Data.ByteString.BaseN hiding (unpack8, pack8) 
 
 import Data.Word
 import Data.Bits (shiftL, shiftR, (.|.), (.&.))
