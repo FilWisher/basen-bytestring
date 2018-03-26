@@ -1,4 +1,4 @@
-# basenstrings
+# basen-bytestring
 
 Base N ByteStrings for the common cases:
 
