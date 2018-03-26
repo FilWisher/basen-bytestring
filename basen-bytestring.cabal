@@ -1,9 +1,3 @@
--- This file has been generated from package.yaml by hpack version 0.20.0.
---
--- see: https://github.com/sol/hpack
---
--- hash: f921dac63279f145f0e45ec1a142f647a5ffa36b144319f777b938f1913ce849
-
 name:           basen-bytestring
 version:        0.1.0.0
 description:    Base-N ByteStrings for base{16,32,58,64}
