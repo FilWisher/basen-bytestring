@@ -3,6 +3,9 @@
 module Data.ByteString.Base64
   ( encode
   , decode
+  
+  , encodeURL
+  , decodeURL
   ) where
 
 import Data.Word
@@ -46,6 +49,12 @@ encode = encodeAlphabet alphabet
 
 decode :: B8.ByteString -> Either String B8.ByteString
 decode = decodeAlphabet alphabet
+
+encodeURL :: B8.ByteString -> B8.ByteString
+encodeURL = encodeAlphabet alphabetURL
+
+decodeURL :: B8.ByteString -> Either String B8.ByteString
+decodeURL = decodeAlphabet alphabetURL
 
 decodeAlphabet :: Enc -> B8.ByteString -> Either String B8.ByteString
 decodeAlphabet enc src@(Internal.PS sfp soff slen)
@@ -92,6 +101,9 @@ decodeAlphabet enc src@(Internal.PS sfp soff slen)
 alphabet :: Enc
 alphabet = mkEnc "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
+alphabetURL :: Enc
+alphabetURL = mkEnc "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
 encodeAlphabet :: Enc -> B8.ByteString -> B8.ByteString
 encodeAlphabet enc src@(Internal.PS sfp soff slen) =
   unsafePerformIO $ byChunk 3 dlen onchunk onend src
@@ -112,3 +124,7 @@ encodeAlphabet enc src@(Internal.PS sfp soff slen) =
       poke (dp `plusPtr` 1) (encoded !! 1)
       poke (dp `plusPtr` 2) (if rem == 1 then 0x3d else encoded !! 2)
       poke (dp `plusPtr` 3) (0x3d :: Word8)
+
+
+
+

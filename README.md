@@ -1,6 +1,7 @@
 # basen-bytestring
 
-Base N ByteStrings for the common cases:
+(RFC-4648)[https://tools.ietf.org/html/rfc4648] compliant base-n ByteStrings for
+the common cases:
 
 ```
 Data.ByteString.Base16
