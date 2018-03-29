@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 import Test.QuickCheck (Arbitrary(..), choose, forAll)
 import Test.QuickCheck.All (quickCheckAll)
@@ -22,6 +23,28 @@ prop_base16_inverse :: B8.ByteString -> Bool
 prop_base16_inverse bs =
   either (const False) (bs==)
     $ Base16.decode $ Base16.encode bs
+
+inverse ::
+  (B8.ByteString -> B8.ByteString) ->
+  (B8.ByteString -> Either String B8.ByteString) ->
+  B8.ByteString ->
+  Bool
+inverse encode decode bs =
+  let
+    enc = encode bs
+    long = "--%" `B8.append` encode bs
+    [pre,post] = B8.split '%' long
+  in
+    either (const False) (bs==) (decode post)
+
+prop_base16_inverse_split :: B8.ByteString -> Bool
+prop_base16_inverse_split = inverse Base16.encode Base16.decode
+
+prop_base32_inverse_split :: B8.ByteString -> Bool
+prop_base32_inverse_split = inverse Base32.encode Base32.decode
+
+prop_base64_inverse_split :: B8.ByteString -> Bool
+prop_base64_inverse_split = inverse Base64.encode Base64.decode
 
 prop_base32_inverse :: B8.ByteString -> Bool
 prop_base32_inverse bs =

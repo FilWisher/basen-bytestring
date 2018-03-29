@@ -92,7 +92,7 @@ byChunk chunksize dlen onchunk onend (Internal.PS sfp soff slen) =
           loop (sp `plusPtr` chunksize) (dp `plusPtr` advance)
     dfp <- Internal.mallocByteString dlen
     withForeignPtr dfp $ \dptr -> do
-      loop sptr dptr
+      loop (sptr `plusPtr` soff) dptr
       return $ Internal.PS dfp 0 dlen
 
 byChunkErr :: 
@@ -115,4 +115,4 @@ byChunkErr chunksize dlen onchunk onend (Internal.PS sfp soff slen) =
             Left err -> return $ Left err
             Right n -> loop (sp `plusPtr` chunksize) (dp `plusPtr` n)
     dfp <- Internal.mallocByteString dlen
-    fmap (Internal.PS dfp 0) <$> withForeignPtr dfp (loop sptr)
+    fmap (Internal.PS dfp 0) <$> withForeignPtr dfp (loop $ sptr `plusPtr` soff)
