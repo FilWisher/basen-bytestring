@@ -1,5 +1,5 @@
 name:           basen-bytestring
-version:        0.1.0.0
+version:        0.1.0.1
 description:    Base-N ByteStrings for base{16,32,58,64}
 homepage:       https://github.com/FilWisher/basen-bytestring#readme
 bug-reports:    https://github.com/FilWisher/basen-bytestring/issues
